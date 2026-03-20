@@ -2,60 +2,66 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Wartungs-Tool Kälte</title>
+    <title>Wartungs-Tool mit Speicher</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; background: #f0f2f5; }
-        .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; margin-bottom: 10px; }
-        button:hover { background: #0056b3; }
-        .add-btn { background: #28a745; }
-        #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:white; text-align:center; padding-top:100px; z-index:100; }
-        .modal-box { background: #333; padding: 20px; border-radius: 10px; display: inline-block; width: 80%; max-width: 400px; }
-        #resultArea { display:none; }
-        pre { background: #eee; padding: 15px; white-space: pre-wrap; word-wrap: break-word; border: 1px solid #ddd; }
+        body { font-family: sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #007bff; }
+        .card-aussen { border-left: 5px solid #28a745; }
+        label { font-weight: bold; display: block; margin-top: 10px; font-size: 0.9em; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .add-btn { background: #28a745; margin-bottom: 20px; }
+        .del-btn { background: #dc3545; padding: 5px 10px; width: auto; font-size: 12px; float: right; margin-top: -30px; }
+        #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 20px; border-radius: 15px; width: 85%; text-align: center; color: black; }
+        #resultArea { display:none; margin-top: 20px; }
+        pre { background: #fff; padding: 15px; white-space: pre-wrap; border: 2px dashed #007bff; font-family: monospace; }
+        .reset-btn { background: #6c757d; margin-top: 30px; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <h2>Wartungsprotokoll Generator</h2>
+    <h2>Kälte-Wartung v2</h2>
+    <p style="font-size: 0.8em; color: #666;">Daten werden automatisch zwischengespeichert.</p>
 
     <div class="card">
-        <label>Anzahl Innengeräte:</label>
-        <input type="number" id="main_innen" value="0">
-        <label>Anzahl Außengeräte:</label>
-        <input type="number" id="main_aussen" value="0">
-        <label>Status:</label>
-        <select id="main_status" onchange="checkStatus()">
-            <option value="OK">Anlagen funktionieren einwandfrei</option>
-            <option value="ERROR">Störung liegt vor</option>
+        <label>Anzahl Innen- / Außengeräte:</label>
+        <div style="display:flex; gap:10px;">
+            <input type="number" id="main_innen" placeholder="Innen" oninput="saveAll()">
+            <input type="number" id="main_aussen" placeholder="Außen" oninput="saveAll()">
+        </div>
+        
+        <label>Anlagenstatus:</label>
+        <select id="main_status" onchange="checkStatus(); saveAll();">
+            <option value="OK">Einwandfrei</option>
+            <option value="ERROR">Störung</option>
         </select>
         <div id="stoerungDiv" style="display:none;">
-            <label>Störungsbeschreibung:</label>
-            <input type="text" id="main_stoerung_text" placeholder="Was ist defekt?">
+            <input type="text" id="main_stoerung_text" placeholder="Fehlerbeschreibung..." oninput="saveAll()">
         </div>
     </div>
 
     <div id="innenListe"></div>
-    <button class="add-btn" onclick="addInnen()">+ Innengerät hinzufügen</button>
+    <button class="add-btn" onclick="addInnen(); saveAll();">+ Innengerät</button>
 
     <div id="aussenListe"></div>
-    <button class="add-btn" onclick="addAussen()">+ Außengerät hinzufügen</button>
+    <button class="add-btn" onclick="addAussen(); saveAll();" style="background:#218838;">+ Außengerät</button>
 
-    <br><br>
-    <button onclick="startFinish()">PROTOKOLL ERSTELLEN</button>
+    <button onclick="startFinish()" style="background:#0056b3; height: 60px;">PROTOKOLL ERSTELLEN</button>
+    <button class="reset-btn" onclick="clearData()">Formular komplett leeren</button>
 
-    <div id="modal">
-        <div class="modal-box">
-            <h3>Alles korrekt?</h3>
-            <p>Bitte Daten prüfen...</p>
+    <div id="modal" onclick="closeModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h3>Prüfung</h3>
+            <p>Sind alle Angaben korrekt?</p>
             <button id="finishBtn" disabled onclick="showFinal()">Fertigstellen (5s)</button>
-            <button style="background:#666;" onclick="closeModal()">Abbrechen</button>
+            <button style="background:#eee; color: black;" onclick="closeModal()">Abbrechen</button>
         </div>
     </div>
 
     <div id="resultArea" class="card">
-        <h3>Dein fertiger Text:</h3>
+        <h3>Fertiges Protokoll:</h3>
         <pre id="outputText"></pre>
         <button onclick="copyToClipboard()" style="background:#17a2b8;">Text kopieren</button>
     </div>
@@ -65,59 +71,80 @@
         let aCount = 0;
 
         function checkStatus() {
-            document.getElementById('stoerungDiv').style.display = 
-                (document.getElementById('main_status').value === 'ERROR') ? 'block' : 'none';
+            document.getElementById('stoerungDiv').style.display = (document.getElementById('main_status').value === 'ERROR') ? 'block' : 'none';
         }
 
-        function addInnen() {
+        function addInnen(data = null) {
             iCount++;
             let div = document.createElement('div');
             div.className = 'card';
             div.innerHTML = `<h4>${iCount}. Innengerät</h4>
-                Standort: <input type="text" class="in-loc">
-                Hersteller: <input type="text" class="in-her">
-                Typ: <input type="text" class="in-typ">
-                Ser.-Nr: <input type="text" class="in-ser">
-                Baujahr: <input type="text" class="in-bj">
-                Kondensat: <input type="text" class="in-kon">
-                Ausblas-Temp (IST): <input type="text" class="in-t-ist" value="32">
-                Soll-Temp: <input type="text" class="in-t-soll" value="29">
-                m/s: <input type="text" class="in-ms">
-                Info: <input type="text" class="in-info">`;
+                <button class="del-btn" onclick="this.parentElement.remove(); saveAll();">Löschen</button>
+                <label>Standort:</label><input type="text" class="in-loc" value="${data?.[0]||''}" oninput="saveAll()">
+                <label>Hersteller:</label><input type="text" class="in-her" value="${data?.[1]||''}" oninput="saveAll()">
+                <label>Typ:</label><input type="text" class="in-typ" value="${data?.[2]||''}" oninput="saveAll()">
+                <label>Ser.-Nr:</label><input type="text" class="in-ser" value="${data?.[3]||''}" oninput="saveAll()">
+                <label>Baujahr:</label><input type="text" class="in-bj" value="${data?.[4]||''}" oninput="saveAll()">
+                <label>Kondensat:</label><input type="text" class="in-kon" value="${data?.[5]||''}" oninput="saveAll()">
+                <label>Temp (Ist/Soll):</label>
+                <div style="display:flex; gap:5px;"><input type="text" class="in-t-ist" value="${data?.[6]||'32'}" oninput="saveAll()"><input type="text" class="in-t-soll" value="${data?.[7]||'29'}" oninput="saveAll()"></div>
+                <label>m/s:</label><input type="text" class="in-ms" value="${data?.[8]||''}" oninput="saveAll()">
+                <label>Zusatzinfo:</label><input type="text" class="in-info" value="${data?.[9]||''}" oninput="saveAll()">`;
             document.getElementById('innenListe').appendChild(div);
         }
 
-        function addAussen() {
+        function addAussen(data = null) {
             aCount++;
             let div = document.createElement('div');
-            div.className = 'card';
+            div.className = 'card card-aussen';
             div.innerHTML = `<h4>zu ${aCount}. Außengerät</h4>
-                Standort: <input type="text" class="au-loc">
-                Hersteller: <input type="text" class="au-her">
-                Typ: <input type="text" class="au-typ">
-                Ser.-Nr: <input type="text" class="au-ser">
-                Versorgung: <input type="text" class="au-volt">
-                Kältemittel: <input type="text" class="au-km" placeholder="z.B. R32">
-                Menge (kg): <input type="text" class="au-kg">
-                Druck (bar): <input type="text" class="au-bar">
-                VDKF: <input type="text" class="au-vdkf">
-                Info: <input type="text" class="au-info">`;
+                <button class="del-btn" onclick="this.parentElement.remove(); saveAll();">Löschen</button>
+                <label>Standort:</label><input type="text" class="au-loc" value="${data?.[0]||''}" oninput="saveAll()">
+                <label>Hersteller:</label><input type="text" class="au-her" value="${data?.[1]||''}" oninput="saveAll()">
+                <label>Typ:</label><input type="text" class="au-typ" value="${data?.[2]||''}" oninput="saveAll()">
+                <label>Ser.-Nr:</label><input type="text" class="au-ser" value="${data?.[3]||''}" oninput="saveAll()">
+                <label>KM / Menge kg:</label>
+                <div style="display:flex; gap:5px;"><input type="text" class="au-km" value="${data?.[4]||''}" oninput="saveAll()"><input type="text" class="au-kg" value="${data?.[5]||''}" oninput="saveAll()"></div>
+                <label>Druck (bar) / VDKF:</label>
+                <div style="display:flex; gap:5px;"><input type="text" class="au-bar" value="${data?.[6]||''}" oninput="saveAll()"><input type="text" class="au-vdkf" value="${data?.[7]||''}" oninput="saveAll()"></div>
+                <label>Zusatzinfo:</label><input type="text" class="au-info" value="${data?.[8]||''}" oninput="saveAll()">`;
             document.getElementById('aussenListe').appendChild(div);
         }
 
+        function saveAll() {
+            const state = {
+                mainInnen: document.getElementById('main_innen').value,
+                mainAussen: document.getElementById('main_aussen').value,
+                status: document.getElementById('main_status').value,
+                stoerung: document.getElementById('main_stoerung_text').value,
+                innen: Array.from(document.querySelectorAll('#innenListe .card')).map(c => Array.from(c.querySelectorAll('input')).map(i => i.value)),
+                aussen: Array.from(document.querySelectorAll('#aussenListe .card')).map(c => Array.from(c.querySelectorAll('input')).map(i => i.value))
+            };
+            localStorage.setItem('kaelte_data', JSON.stringify(state));
+        }
+
+        function loadAll() {
+            const saved = localStorage.getItem('kaelte_data');
+            if(!saved) return;
+            const state = JSON.parse(saved);
+            document.getElementById('main_innen').value = state.mainInnen;
+            document.getElementById('main_aussen').value = state.mainAussen;
+            document.getElementById('main_status').value = state.status;
+            document.getElementById('main_stoerung_text').value = state.stoerung;
+            checkStatus();
+            state.innen.forEach(d => addInnen(d));
+            state.aussen.forEach(d => addAussen(d));
+        }
+
+        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.clear(); location.reload(); } }
+
         function startFinish() {
-            document.getElementById('modal').style.display = 'block';
+            document.getElementById('modal').style.display = 'flex';
             let btn = document.getElementById('finishBtn');
-            let sec = 5;
-            btn.disabled = true;
+            let sec = 5; btn.disabled = true;
             let timer = setInterval(() => {
-                sec--;
-                btn.innerText = `Fertigstellen (${sec}s)`;
-                if(sec <= 0) {
-                    clearInterval(timer);
-                    btn.disabled = false;
-                    btn.innerText = "Jetzt Fertigstellen";
-                }
+                sec--; btn.innerText = `Fertigstellen (${sec}s)`;
+                if(sec <= 0) { clearInterval(timer); btn.disabled = false; btn.innerText = "Jetzt Fertigstellen"; }
             }, 1000);
         }
 
@@ -132,10 +159,8 @@
             closeModal();
             let status = document.getElementById('main_status').value;
             let stoerung = document.getElementById('main_stoerung_text').value || "-";
-            
             let t = `Die Wartung wurde gemäß Auftrag ordnungsgemäß durchgeführt.\n\n`;
-            t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\n`;
-            t += `Druckprobe(n) durchgeführt.\n\n`;
+            t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\nDruckprobe(n) durchgeführt.\n\n`;
             t += (status === "OK") ? "Die Anlagen funktionieren einwandfrei.\n\n" : `Störung liegt vor: ${stoerung}\n\n`;
 
             document.querySelectorAll('#innenListe .card').forEach((box, idx) => {
@@ -143,17 +168,19 @@
             });
 
             document.querySelectorAll('#aussenListe .card').forEach((box, idx) => {
-                t += `zu ${idx+1}. Außengerät\nStandort: ${getV(box, '.au-loc')}\nHersteller: ${getV(box, '.au-her')}\nTyp: ${getV(box, '.au-typ')}\nSer.: ${getV(box, '.au-ser')}\nSpannungsversorgung: ${getV(box, '.au-volt')}\nKältemittel: ${getV(box, '.au-km')} , ${getV(box, '.au-kg')} kg\nStillstandsdruck: ${getV(box, '.au-bar')} bar\nVDKF: ${getV(box, '.au-vdkf')}\n* ${getV(box, '.au-info')}\n\n`;
+                t += `zu ${idx+1}. Außengerät\nStandort: ${getV(box, '.au-loc')}\nHersteller: ${getV(box, '.au-her')}\nTyp: ${getV(box, '.au-typ')}\nSer.: ${getV(box, '.au-ser')}\nKältemittel: ${getV(box, '.au-km')} , ${getV(box, '.au-kg')} kg\nStillstandsdruck: ${getV(box, '.au-bar')} bar\nVDKF: ${getV(box, '.au-vdkf')}\n* ${getV(box, '.au-info')}\n\n`;
             });
 
             document.getElementById('outputText').innerText = t;
             document.getElementById('resultArea').style.display = 'block';
+            window.scrollTo(0, document.body.scrollHeight);
         }
 
         function copyToClipboard() {
-            let text = document.getElementById('outputText').innerText;
-            navigator.clipboard.writeText(text).then(() => alert("Kopiert!"));
+            navigator.clipboard.writeText(document.getElementById('outputText').innerText).then(() => alert("Kopiert!"));
         }
+
+        window.onload = loadAll;
     </script>
 </body>
 </html>
