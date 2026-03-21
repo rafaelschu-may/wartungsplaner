@@ -2,27 +2,28 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Wartungs-Tool mit Speicher</title>
+    <title>Wartungsprotokoll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
-        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #007bff; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #007bff; position: relative; }
         .card-aussen { border-left: 5px solid #28a745; }
         label { font-weight: bold; display: block; margin-top: 10px; font-size: 0.9em; }
         input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
         button { background: #007bff; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .add-btn { background: #28a745; margin-bottom: 20px; }
-        .del-btn { background: #dc3545; padding: 5px 10px; width: auto; font-size: 12px; float: right; margin-top: -30px; }
+        .del-btn { background: #dc3545; padding: 8px 12px; width: auto; font-size: 12px; position: absolute; right: 10px; top: 10px; margin: 0; }
         #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 20px; border-radius: 15px; width: 85%; text-align: center; color: black; }
         #resultArea { display:none; margin-top: 20px; }
         pre { background: #fff; padding: 15px; white-space: pre-wrap; border: 2px dashed #007bff; font-family: monospace; }
         .reset-btn { background: #6c757d; margin-top: 30px; font-size: 14px; }
+        h4 { margin-top: 0; padding-right: 70px; }
     </style>
 </head>
 <body>
 
-    <h2>Kälte-Wartung v2</h2>
+    <h2>Wartungsprokotoll</h2>
     <p style="font-size: 0.8em; color: #666;">Daten werden automatisch zwischengespeichert.</p>
 
     <div class="card">
@@ -43,10 +44,10 @@
     </div>
 
     <div id="innenListe"></div>
-    <button class="add-btn" onclick="addInnen(); saveAll();">+ Innengerät</button>
+    <button class="add-btn" onclick="addInnen(); updateNumbers(); saveAll();">+ Innengerät</button>
 
     <div id="aussenListe"></div>
-    <button class="add-btn" onclick="addAussen(); saveAll();" style="background:#218838;">+ Außengerät</button>
+    <button class="add-btn" onclick="addAussen(); updateNumbers(); saveAll();" style="background:#218838;">+ Außengerät</button>
 
     <button onclick="startFinish()" style="background:#0056b3; height: 60px;">PROTOKOLL ERSTELLEN</button>
     <button class="reset-btn" onclick="clearData()">Formular komplett leeren</button>
@@ -67,19 +68,25 @@
     </div>
 
     <script>
-        let iCount = 0;
-        let aCount = 0;
-
         function checkStatus() {
             document.getElementById('stoerungDiv').style.display = (document.getElementById('main_status').value === 'ERROR') ? 'block' : 'none';
         }
 
+        // Neue Funktion zum korrekten Durchnummerieren der Anzeigen
+        function updateNumbers() {
+            document.querySelectorAll('#innenListe h4').forEach((title, idx) => {
+                title.innerText = (idx + 1) + ". Innengerät";
+            });
+            document.querySelectorAll('#aussenListe h4').forEach((title, idx) => {
+                title.innerText = "zu " + (idx + 1) + ". Außengerät";
+            });
+        }
+
         function addInnen(data = null) {
-            iCount++;
             let div = document.createElement('div');
-            div.className = 'card';
-            div.innerHTML = `<h4>${iCount}. Innengerät</h4>
-                <button class="del-btn" onclick="this.parentElement.remove(); saveAll();">Löschen</button>
+            div.className = 'card device-item-in';
+            div.innerHTML = `<h4>Innengerät</h4>
+                <button class="del-btn" onclick="this.parentElement.remove(); updateNumbers(); saveAll();">Löschen</button>
                 <label>Standort:</label><input type="text" class="in-loc" value="${data?.[0]||''}" oninput="saveAll()">
                 <label>Hersteller:</label><input type="text" class="in-her" value="${data?.[1]||''}" oninput="saveAll()">
                 <label>Typ:</label><input type="text" class="in-typ" value="${data?.[2]||''}" oninput="saveAll()">
@@ -91,14 +98,14 @@
                 <label>m/s:</label><input type="text" class="in-ms" value="${data?.[8]||''}" oninput="saveAll()">
                 <label>Zusatzinfo:</label><input type="text" class="in-info" value="${data?.[9]||''}" oninput="saveAll()">`;
             document.getElementById('innenListe').appendChild(div);
+            updateNumbers();
         }
 
         function addAussen(data = null) {
-            aCount++;
             let div = document.createElement('div');
-            div.className = 'card card-aussen';
-            div.innerHTML = `<h4>zu ${aCount}. Außengerät</h4>
-                <button class="del-btn" onclick="this.parentElement.remove(); saveAll();">Löschen</button>
+            div.className = 'card card-aussen device-item-au';
+            div.innerHTML = `<h4>Außengerät</h4>
+                <button class="del-btn" onclick="this.parentElement.remove(); updateNumbers(); saveAll();">Löschen</button>
                 <label>Standort:</label><input type="text" class="au-loc" value="${data?.[0]||''}" oninput="saveAll()">
                 <label>Hersteller:</label><input type="text" class="au-her" value="${data?.[1]||''}" oninput="saveAll()">
                 <label>Typ:</label><input type="text" class="au-typ" value="${data?.[2]||''}" oninput="saveAll()">
@@ -109,6 +116,7 @@
                 <div style="display:flex; gap:5px;"><input type="text" class="au-bar" value="${data?.[6]||''}" oninput="saveAll()"><input type="text" class="au-vdkf" value="${data?.[7]||''}" oninput="saveAll()"></div>
                 <label>Zusatzinfo:</label><input type="text" class="au-info" value="${data?.[8]||''}" oninput="saveAll()">`;
             document.getElementById('aussenListe').appendChild(div);
+            updateNumbers();
         }
 
         function saveAll() {
@@ -134,6 +142,7 @@
             checkStatus();
             state.innen.forEach(d => addInnen(d));
             state.aussen.forEach(d => addAussen(d));
+            updateNumbers();
         }
 
         function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.clear(); location.reload(); } }
@@ -163,11 +172,11 @@
             t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\nDruckprobe(n) durchgeführt.\n\n`;
             t += (status === "OK") ? "Die Anlagen funktionieren einwandfrei.\n\n" : `Störung liegt vor: ${stoerung}\n\n`;
 
-            document.querySelectorAll('#innenListe .card').forEach((box, idx) => {
+            document.querySelectorAll('#innenListe .device-item-in').forEach((box, idx) => {
                 t += `${idx+1}. Innengerät\nStandort: ${getV(box, '.in-loc')}\nHersteller: ${getV(box, '.in-her')}\nTyp: ${getV(box, '.in-typ')}\nSer.: ${getV(box, '.in-ser')}\nBaujahr: ${getV(box, '.in-bj')}\nKondensatablauf: ${getV(box, '.in-kon')}\nAusblastemperatur: ${getV(box, '.in-t-ist')} bei eingestellten ${getV(box, '.in-t-soll')} grad Solltemperatur\nAusblasgeschwindigkeit: ${getV(box, '.in-ms')} m/s\n* ${getV(box, '.in-info')}\n\n`;
             });
 
-            document.querySelectorAll('#aussenListe .card').forEach((box, idx) => {
+            document.querySelectorAll('#aussenListe .device-item-au').forEach((box, idx) => {
                 t += `zu ${idx+1}. Außengerät\nStandort: ${getV(box, '.au-loc')}\nHersteller: ${getV(box, '.au-her')}\nTyp: ${getV(box, '.au-typ')}\nSer.: ${getV(box, '.au-ser')}\nKältemittel: ${getV(box, '.au-km')} , ${getV(box, '.au-kg')} kg\nStillstandsdruck: ${getV(box, '.au-bar')} bar\nVDKF: ${getV(box, '.au-vdkf')}\n* ${getV(box, '.au-info')}\n\n`;
             });
 
