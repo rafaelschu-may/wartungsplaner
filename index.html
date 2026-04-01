@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Wartungsprokotoll</title>
+    <title>Kälte-Wartung v5.1</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
@@ -24,7 +24,7 @@
 </head>
 <body>
 
-    <h2>Wartungsprokotoll</h2>
+    <h2>Kälte-Wartung v5.1</h2>
     <p style="font-size: 0.8em; color: #666;">Daten werden automatisch zwischengespeichert.</p>
 
     <div class="card">
@@ -171,11 +171,11 @@
                     return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
                 })
             };
-            localStorage.setItem('kaelte_data_v5', JSON.stringify(state));
+            localStorage.setItem('kaelte_data_v5_1', JSON.stringify(state));
         }
 
         function loadAll() {
-            const saved = localStorage.getItem('kaelte_data_v5');
+            const saved = localStorage.getItem('kaelte_data_v5_1');
             if(!saved) return;
             const state = JSON.parse(saved);
             document.getElementById('main_innen').value = state.mainInnen || '';
@@ -190,7 +190,7 @@
             updateNumbers();
         }
 
-        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.removeItem('kaelte_data_v5'); location.reload(); } }
+        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.removeItem('kaelte_data_v5_1'); location.reload(); } }
 
         function startFinish() {
             document.getElementById('modal').style.display = 'flex';
@@ -198,11 +198,11 @@
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-        function opt(box, cbCls, valCls, labelText) {
+        function opt(box, cbCls, valCls, labelText, unit = "") {
             let cb = box.querySelector(cbCls);
             if (!cb || !cb.checked) return "";
             let v = box.querySelector(valCls).value.trim() || "-";
-            return `${labelText}${v}\n`;
+            return `${labelText}${v}${unit}\n`;
         }
 
         function showFinal() {
@@ -229,7 +229,7 @@
                     t += `Ausblastemperatur: ${ist} °C bei eingestellten ${soll} °C\n`;
                 }
                 
-                t += opt(box, '.cb-ms', '.in-ms', 'Ausblasgeschwindigkeit: ');
+                t += opt(box, '.cb-ms', '.in-ms', 'Ausblasgeschwindigkeit: ', ' m/s');
                 t += opt(box, '.cb-info', '.in-info', '* ');
                 t += `\n`;
             });
