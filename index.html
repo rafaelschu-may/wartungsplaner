@@ -2,14 +2,15 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Wartungsprotokoll</title>
+    <title>Wartungsprokotoll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
         .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #007bff; position: relative; }
         .card-aussen { border-left: 5px solid #28a745; }
-        label { font-weight: bold; display: block; margin-top: 10px; font-size: 0.9em; }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        label { font-weight: bold; display: flex; align-items: center; margin-top: 10px; font-size: 0.9em; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        input[type="checkbox"] { width: auto; margin: 0 8px 0 0; transform: scale(1.3); cursor: pointer; }
         button { background: #007bff; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .add-btn { background: #28a745; margin-bottom: 20px; }
         .del-btn { background: #dc3545; padding: 8px 12px; width: auto; font-size: 12px; position: absolute; right: 10px; top: 10px; margin: 0; }
@@ -44,10 +45,10 @@
     </div>
 
     <div id="innenListe"></div>
-    <button class="add-btn" onclick="addInnen(); updateNumbers(); saveAll();">+ Innengerät</button>
+    <button class="add-btn" onclick="addInnen(); updateNumbers(); saveAll();">+ Innengerät hinzufügen</button>
 
     <div id="aussenListe"></div>
-    <button class="add-btn" onclick="addAussen(); updateNumbers(); saveAll();" style="background:#218838;">+ Außengerät</button>
+    <button class="add-btn" onclick="addAussen(); updateNumbers(); saveAll();" style="background:#218838;">+ Außengerät hinzufügen</button>
 
     <button onclick="startFinish()" style="background:#0056b3; height: 60px;">PROTOKOLL ERSTELLEN</button>
     <button class="reset-btn" onclick="clearData()">Formular komplett leeren</button>
@@ -56,7 +57,7 @@
         <div class="modal-box" onclick="event.stopPropagation()">
             <h3>Prüfung</h3>
             <p>Sind alle Angaben korrekt?</p>
-            <button id="finishBtn" disabled onclick="showFinal()">Fertigstellen (5s)</button>
+            <button id="finishBtn" onclick="showFinal()">Jetzt Fertigstellen</button>
             <button style="background:#eee; color: black;" onclick="closeModal()">Abbrechen</button>
         </div>
     </div>
@@ -72,51 +73,89 @@
             document.getElementById('stoerungDiv').style.display = (document.getElementById('main_status').value === 'ERROR') ? 'block' : 'none';
         }
 
-        // Neue Funktion zum korrekten Durchnummerieren der Anzeigen
         function updateNumbers() {
-            document.querySelectorAll('#innenListe h4').forEach((title, idx) => {
-                title.innerText = (idx + 1) + ". Innengerät";
+            document.querySelectorAll('#innenListe .device-item-in').forEach((box, idx) => {
+                box.querySelector('h4').innerText = (idx + 1) + ". Innengerät";
             });
-            document.querySelectorAll('#aussenListe h4').forEach((title, idx) => {
-                title.innerText = "zu " + (idx + 1) + ". Außengerät";
+            document.querySelectorAll('#aussenListe .device-item-au').forEach((box, idx) => {
+                box.querySelector('h4').innerText = (idx + 1) + ". Außengerät";
             });
         }
 
         function addInnen(data = null) {
             let div = document.createElement('div');
             div.className = 'card device-item-in';
-            div.innerHTML = `<h4>Innengerät</h4>
+            div.innerHTML = `
+                <h4>Innengerät</h4>
                 <button class="del-btn" onclick="this.parentElement.remove(); updateNumbers(); saveAll();">Löschen</button>
-                <label>Standort:</label><input type="text" class="in-loc" value="${data?.[0]||''}" oninput="saveAll()">
-                <label>Hersteller:</label><input type="text" class="in-her" value="${data?.[1]||''}" oninput="saveAll()">
-                <label>Typ:</label><input type="text" class="in-typ" value="${data?.[2]||''}" oninput="saveAll()">
-                <label>Ser.-Nr:</label><input type="text" class="in-ser" value="${data?.[3]||''}" oninput="saveAll()">
-                <label>Baujahr:</label><input type="text" class="in-bj" value="${data?.[4]||''}" oninput="saveAll()">
-                <label>Kondensat:</label><input type="text" class="in-kon" value="${data?.[5]||''}" oninput="saveAll()">
-                <label>Ausblastemperatur:</label>
-                <div style="display:flex; gap:5px;"><input type="text" class="in-t-ist" value="${data?.[6]||'32'}" oninput="saveAll()"><input type="text" class="in-t-soll" value="${data?.[7]||'29'}" oninput="saveAll()"></div>
-                <label>m/s:</label><input type="text" class="in-ms" value="${data?.[8]||''}" oninput="saveAll()">
-                <label>Zusatzinfo:</label><input type="text" class="in-info" value="${data?.[9]||''}" oninput="saveAll()">`;
+                
+                <label><input type="checkbox" class="cb-loc" checked onchange="saveAll()"> Standort:</label><input type="text" class="in-loc" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-her" checked onchange="saveAll()"> Hersteller:</label><input type="text" class="in-her" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-typ" checked onchange="saveAll()"> Typ:</label><input type="text" class="in-typ" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-ser" checked onchange="saveAll()"> Ser.-Nr:</label><input type="text" class="in-ser" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-bj" checked onchange="saveAll()"> Baujahr:</label><input type="text" class="in-bj" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-kon" checked onchange="saveAll()"> Kondensat:</label><input type="text" class="in-kon" oninput="saveAll()">
+                
+                <div style="display:flex; align-items:center; gap:5px; margin-top:15px; flex-wrap: wrap;">
+                    <input type="checkbox" class="cb-temp" checked onchange="saveAll()">
+                    <span style="font-weight:bold; font-size:0.9em;">Ausblastemperatur</span>
+                    <input type="text" class="in-t-ist" style="width:70px; margin:0;" placeholder="Ist" oninput="saveAll()">
+                    <span style="font-weight:bold; font-size:0.9em;">°C bei</span>
+                    <input type="text" class="in-t-soll" style="width:70px; margin:0;" placeholder="Soll" oninput="saveAll()">
+                    <span style="font-weight:bold; font-size:0.9em;">°C</span>
+                </div>
+                
+                <label><input type="checkbox" class="cb-ms" checked onchange="saveAll()"> m/s:</label><input type="text" class="in-ms" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-info" checked onchange="saveAll()"> Zusatzinfo:</label><input type="text" class="in-info" oninput="saveAll()">
+            `;
             document.getElementById('innenListe').appendChild(div);
-            updateNumbers();
+
+            if (data) {
+                let inputs = Array.from(div.querySelectorAll('input'));
+                inputs.forEach((el, i) => {
+                    if (data[i] !== undefined) {
+                        if (el.type === 'checkbox') el.checked = data[i];
+                        else el.value = data[i];
+                    }
+                });
+            }
         }
 
         function addAussen(data = null) {
             let div = document.createElement('div');
             div.className = 'card card-aussen device-item-au';
-            div.innerHTML = `<h4>Außengerät</h4>
+            div.innerHTML = `
+                <h4>Außengerät</h4>
                 <button class="del-btn" onclick="this.parentElement.remove(); updateNumbers(); saveAll();">Löschen</button>
-                <label>Standort:</label><input type="text" class="au-loc" value="${data?.[0]||''}" oninput="saveAll()">
-                <label>Hersteller:</label><input type="text" class="au-her" value="${data?.[1]||''}" oninput="saveAll()">
-                <label>Typ:</label><input type="text" class="au-typ" value="${data?.[2]||''}" oninput="saveAll()">
-                <label>Ser.-Nr:</label><input type="text" class="au-ser" value="${data?.[3]||''}" oninput="saveAll()">
-                <label>KM / Menge kg:</label>
-                <div style="display:flex; gap:5px;"><input type="text" class="au-km" value="${data?.[4]||''}" oninput="saveAll()"><input type="text" class="au-kg" value="${data?.[5]||''}" oninput="saveAll()"></div>
-                <label>Druck (bar) / VDKF:</label>
-                <div style="display:flex; gap:5px;"><input type="text" class="au-bar" value="${data?.[6]||''}" oninput="saveAll()"><input type="text" class="au-vdkf" value="${data?.[7]||''}" oninput="saveAll()"></div>
-                <label>Zusatzinfo:</label><input type="text" class="au-info" value="${data?.[8]||''}" oninput="saveAll()">`;
+                
+                <label style="color: #0056b3;"><input type="checkbox" class="cb-zu" checked onchange="saveAll()"> Zugehörige IG (z.B. 1, 2, 3):</label><input type="text" class="au-zu" placeholder="Nummern der Innengeräte" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-loc" checked onchange="saveAll()"> Standort:</label><input type="text" class="au-loc" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-her" checked onchange="saveAll()"> Hersteller:</label><input type="text" class="au-her" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-typ" checked onchange="saveAll()"> Typ:</label><input type="text" class="au-typ" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-ser" checked onchange="saveAll()"> Ser.-Nr:</label><input type="text" class="au-ser" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-bj" checked onchange="saveAll()"> Baujahr:</label><input type="text" class="au-bj" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-km" checked onchange="saveAll()"> KM / Menge kg:</label>
+                <div style="display:flex; gap:5px;"><input type="text" class="au-km" placeholder="KM" oninput="saveAll()"><input type="text" class="au-kg" placeholder="kg" oninput="saveAll()"></div>
+                
+                <label><input type="checkbox" class="cb-bar" checked onchange="saveAll()"> Kältemitteldruck (bar):</label><input type="text" class="au-bar" placeholder="bar" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-vdkf" checked onchange="saveAll()"> VDKF:</label><input type="text" class="au-vdkf" placeholder="VDKF" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-info" checked onchange="saveAll()"> Zusatzinfo:</label><input type="text" class="au-info" oninput="saveAll()">
+            `;
             document.getElementById('aussenListe').appendChild(div);
-            updateNumbers();
+
+            if (data) {
+                let inputs = Array.from(div.querySelectorAll('input'));
+                inputs.forEach((el, i) => {
+                    if (data[i] !== undefined) {
+                        if (el.type === 'checkbox') el.checked = data[i];
+                        else el.value = data[i];
+                    }
+                });
+            }
         }
 
         function saveAll() {
@@ -125,43 +164,45 @@
                 mainAussen: document.getElementById('main_aussen').value,
                 status: document.getElementById('main_status').value,
                 stoerung: document.getElementById('main_stoerung_text').value,
-                innen: Array.from(document.querySelectorAll('#innenListe .card')).map(c => Array.from(c.querySelectorAll('input')).map(i => i.value)),
-                aussen: Array.from(document.querySelectorAll('#aussenListe .card')).map(c => Array.from(c.querySelectorAll('input')).map(i => i.value))
+                innen: Array.from(document.querySelectorAll('#innenListe .device-item-in')).map(box => {
+                    return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
+                }),
+                aussen: Array.from(document.querySelectorAll('#aussenListe .device-item-au')).map(box => {
+                    return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
+                })
             };
-            localStorage.setItem('kaelte_data', JSON.stringify(state));
+            localStorage.setItem('kaelte_data_v5', JSON.stringify(state));
         }
 
         function loadAll() {
-            const saved = localStorage.getItem('kaelte_data');
+            const saved = localStorage.getItem('kaelte_data_v5');
             if(!saved) return;
             const state = JSON.parse(saved);
-            document.getElementById('main_innen').value = state.mainInnen;
-            document.getElementById('main_aussen').value = state.mainAussen;
-            document.getElementById('main_status').value = state.status;
-            document.getElementById('main_stoerung_text').value = state.stoerung;
+            document.getElementById('main_innen').value = state.mainInnen || '';
+            document.getElementById('main_aussen').value = state.mainAussen || '';
+            document.getElementById('main_status').value = state.status || 'OK';
+            document.getElementById('main_stoerung_text').value = state.stoerung || '';
             checkStatus();
-            state.innen.forEach(d => addInnen(d));
-            state.aussen.forEach(d => addAussen(d));
+            
+            if(state.innen) state.innen.forEach(d => addInnen(d));
+            if(state.aussen) state.aussen.forEach(d => addAussen(d));
+            
             updateNumbers();
         }
 
-        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.clear(); location.reload(); } }
+        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.removeItem('kaelte_data_v5'); location.reload(); } }
 
         function startFinish() {
             document.getElementById('modal').style.display = 'flex';
-            let btn = document.getElementById('finishBtn');
-            let sec = 5; btn.disabled = true;
-            let timer = setInterval(() => {
-                sec--; btn.innerText = `Fertigstellen (${sec}s)`;
-                if(sec <= 0) { clearInterval(timer); btn.disabled = false; btn.innerText = "Jetzt Fertigstellen"; }
-            }, 1000);
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-        function getV(el, cls) { 
-            let v = el.querySelector(cls).value; 
-            return v.trim() === "" ? "-" : v; 
+        function opt(box, cbCls, valCls, labelText) {
+            let cb = box.querySelector(cbCls);
+            if (!cb || !cb.checked) return "";
+            let v = box.querySelector(valCls).value.trim() || "-";
+            return `${labelText}${v}\n`;
         }
 
         function showFinal() {
@@ -172,12 +213,61 @@
             t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\nDruckprobe(n) durchgeführt.\n\n`;
             t += (status === "OK") ? "Die Anlagen funktionieren einwandfrei.\n\n" : `Störung liegt vor: ${stoerung}\n\n`;
 
+            // Innengeräte ausgeben
             document.querySelectorAll('#innenListe .device-item-in').forEach((box, idx) => {
-                t += `${idx+1}. Innengerät\nStandort: ${getV(box, '.in-loc')}\nHersteller: ${getV(box, '.in-her')}\nTyp: ${getV(box, '.in-typ')}\nSer.: ${getV(box, '.in-ser')}\nBaujahr: ${getV(box, '.in-bj')}\nKondensatablauf: ${getV(box, '.in-kon')}\nAusblastemperatur: ${getV(box, '.in-t-ist')} bei eingestellten ${getV(box, '.in-t-soll')} grad Solltemperatur\nAusblasgeschwindigkeit: ${getV(box, '.in-ms')} m/s\n* ${getV(box, '.in-info')}\n\n`;
+                t += `${idx+1}. Innengerät\n`;
+                t += opt(box, '.cb-loc', '.in-loc', 'Standort: ');
+                t += opt(box, '.cb-her', '.in-her', 'Hersteller: ');
+                t += opt(box, '.cb-typ', '.in-typ', 'Typ: ');
+                t += opt(box, '.cb-ser', '.in-ser', 'Ser.: ');
+                t += opt(box, '.cb-bj', '.in-bj', 'Baujahr: ');
+                t += opt(box, '.cb-kon', '.in-kon', 'Kondensatablauf: ');
+                
+                if (box.querySelector('.cb-temp') && box.querySelector('.cb-temp').checked) {
+                    let ist = box.querySelector('.in-t-ist').value.trim() || "-";
+                    let soll = box.querySelector('.in-t-soll').value.trim() || "-";
+                    t += `Ausblastemperatur: ${ist} °C bei eingestellten ${soll} °C\n`;
+                }
+                
+                t += opt(box, '.cb-ms', '.in-ms', 'Ausblasgeschwindigkeit: ');
+                t += opt(box, '.cb-info', '.in-info', '* ');
+                t += `\n`;
             });
 
+            // Außengeräte ausgeben
             document.querySelectorAll('#aussenListe .device-item-au').forEach((box, idx) => {
-                t += `zu ${idx+1}. Außengerät\nStandort: ${getV(box, '.au-loc')}\nHersteller: ${getV(box, '.au-her')}\nTyp: ${getV(box, '.au-typ')}\nSer.: ${getV(box, '.au-ser')}\nKältemittel: ${getV(box, '.au-km')} , ${getV(box, '.au-kg')} kg\nStillstandsdruck: ${getV(box, '.au-bar')} bar\nVDKF: ${getV(box, '.au-vdkf')}\n* ${getV(box, '.au-info')}\n\n`;
+                let zuText = "";
+                if (box.querySelector('.cb-zu') && box.querySelector('.cb-zu').checked) {
+                    let zuVal = box.querySelector('.au-zu').value.trim();
+                    if(zuVal !== "") zuText = ` zu ${zuVal}`;
+                }
+                
+                t += `${idx+1}. Außengerät${zuText}\n`;
+                
+                t += opt(box, '.cb-loc', '.au-loc', 'Standort: ');
+                t += opt(box, '.cb-her', '.au-her', 'Hersteller: ');
+                t += opt(box, '.cb-typ', '.au-typ', 'Typ: ');
+                t += opt(box, '.cb-ser', '.au-ser', 'Ser.: ');
+                t += opt(box, '.cb-bj', '.au-bj', 'Baujahr: ');
+                
+                if (box.querySelector('.cb-km') && box.querySelector('.cb-km').checked) {
+                    let km = box.querySelector('.au-km').value.trim() || "-";
+                    let kg = box.querySelector('.au-kg').value.trim() || "-";
+                    t += `Kältemittel: ${km} , ${kg} kg\n`;
+                }
+                
+                if (box.querySelector('.cb-bar') && box.querySelector('.cb-bar').checked) {
+                    let bar = box.querySelector('.au-bar').value.trim() || "-";
+                    t += `Kältemitteldruck: ${bar} bar\n`;
+                }
+
+                if (box.querySelector('.cb-vdkf') && box.querySelector('.cb-vdkf').checked) {
+                    let vdkf = box.querySelector('.au-vdkf').value.trim() || "-";
+                    t += `VDKF: ${vdkf}\n`;
+                }
+                
+                t += opt(box, '.cb-info', '.au-info', '* ');
+                t += `\n`;
             });
 
             document.getElementById('outputText').innerText = t;
