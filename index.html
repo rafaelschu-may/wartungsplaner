@@ -222,7 +222,7 @@
             
             let t = `Die Wartung wurde gemäß Auftrag ordnungsgemäß durchgeführt.\n\n`;
             t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\n`;
-            t += `Stromaufnahme und Drücke gemessen.\nElektrische Klemmen nachgezogen.\nFunktionen und ablaufen / abpumpen des Kondensats getestet.\nDruckprobe(n) durchgeführt.\n\n`;
+            t += `Stromaufnahme gemessen.\nElektrische Klemmen nachgezogen.\nFunktionen und ablaufen / abpumpen des Kondensats getestet.\nDruckprobe(n) durchgeführt.\n\n`;
             t += (status === "OK") ? "Die Anlagen funktionieren einwandfrei.\n\n" : `Störung liegt vor: ${stoerung}\n\n`;
 
             // Innengeräte ausgeben
