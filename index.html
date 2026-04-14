@@ -87,7 +87,7 @@
             div.className = 'card device-item-in';
             div.innerHTML = `
                 <h4>Innengerät</h4>
-                <button class="del-btn" onclick="this.parentElement.remove(); updateNumbers(); saveAll();">Löschen</button>
+                <button class="del-btn" onclick="if(confirm('Dieses Innengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveAll(); }">Löschen</button>
                 
                 <label><input type="checkbox" class="cb-loc" checked onchange="saveAll()"> Standort:</label><input type="text" class="in-loc" oninput="saveAll()">
                 <label><input type="checkbox" class="cb-her" checked onchange="saveAll()"> Hersteller:</label><input type="text" class="in-her" oninput="saveAll()">
@@ -126,7 +126,7 @@
             div.className = 'card card-aussen device-item-au';
             div.innerHTML = `
                 <h4>Außengerät</h4>
-                <button class="del-btn" onclick="this.parentElement.remove(); updateNumbers(); saveAll();">Löschen</button>
+                <button class="del-btn" onclick="if(confirm('Dieses Außengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveAll(); }">Löschen</button>
                 
                 <label style="color: #0056b3;"><input type="checkbox" class="cb-zu" checked onchange="saveAll()"> Zugehörige IG (z.B. 1, 2, 3):</label><input type="text" class="au-zu" placeholder="Nummern der Innengeräte" oninput="saveAll()">
                 
@@ -142,6 +142,8 @@
                 <label><input type="checkbox" class="cb-bar" checked onchange="saveAll()"> Kältemitteldruck (bar):</label><input type="text" class="au-bar" placeholder="bar" oninput="saveAll()">
                 
                 <label><input type="checkbox" class="cb-vdkf" checked onchange="saveAll()"> VDKF:</label><input type="text" class="au-vdkf" placeholder="VDKF" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-strom" checked onchange="saveAll()"> Stromaufnahme (A):</label><input type="text" class="au-strom" placeholder="A" oninput="saveAll()">
                 
                 <label><input type="checkbox" class="cb-info" checked onchange="saveAll()"> Zusatzinfo:</label><input type="text" class="au-info" oninput="saveAll()">
             `;
@@ -171,11 +173,11 @@
                     return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
                 })
             };
-            localStorage.setItem('kaelte_data_v5_1', JSON.stringify(state));
+            localStorage.setItem('kaelte_data_v6', JSON.stringify(state));
         }
 
         function loadAll() {
-            const saved = localStorage.getItem('kaelte_data_v5_1');
+            const saved = localStorage.getItem('kaelte_data_v6');
             if(!saved) return;
             const state = JSON.parse(saved);
             document.getElementById('main_innen').value = state.mainInnen || '';
@@ -190,9 +192,17 @@
             updateNumbers();
         }
 
-        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.removeItem('kaelte_data_v5_1'); location.reload(); } }
+        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.removeItem('kaelte_data_v6'); location.reload(); } }
 
         function startFinish() {
+            let countIn = document.getElementById('main_innen').value.trim();
+            let countAu = document.getElementById('main_aussen').value.trim();
+            
+            if (countIn === "" && countAu === "") {
+                alert("Bitte gib zumindest an, wie viele Innen- oder Außengeräte vorhanden sind!");
+                return;
+            }
+            
             document.getElementById('modal').style.display = 'flex';
         }
 
@@ -209,8 +219,10 @@
             closeModal();
             let status = document.getElementById('main_status').value;
             let stoerung = document.getElementById('main_stoerung_text').value || "-";
+            
             let t = `Die Wartung wurde gemäß Auftrag ordnungsgemäß durchgeführt.\n\n`;
-            t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\nDruckprobe(n) durchgeführt.\n\n`;
+            t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\n`;
+            t += `Stromaufnahme und Drücke gemessen.\nElektrische Klemmen nachgezogen.\nFunktionen und ablaufen / abpumpen des Kondensats getestet.\nDruckprobe(n) durchgeführt.\n\n`;
             t += (status === "OK") ? "Die Anlagen funktionieren einwandfrei.\n\n" : `Störung liegt vor: ${stoerung}\n\n`;
 
             // Innengeräte ausgeben
@@ -264,6 +276,11 @@
                 if (box.querySelector('.cb-vdkf') && box.querySelector('.cb-vdkf').checked) {
                     let vdkf = box.querySelector('.au-vdkf').value.trim() || "-";
                     t += `VDKF: ${vdkf}\n`;
+                }
+                
+                if (box.querySelector('.cb-strom') && box.querySelector('.cb-strom').checked) {
+                    let strom = box.querySelector('.au-strom').value.trim() || "-";
+                    t += `Stromaufnahme: ${strom} A\n`;
                 }
                 
                 t += opt(box, '.cb-info', '.au-info', '* ');
