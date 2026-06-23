@@ -2,66 +2,301 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
+    <title>Kälte-Wartung v6</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Außer Betrieb</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: #333;
-        }
-
-        .notice-card {
-            background-color: #ffffff;
-            padding: 50px 40px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            max-width: 450px;
-            width: 85%;
-            border-top: 6px solid #e74c3c;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        .icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-            line-height: 1;
-        }
-
-        h1 {
-            margin: 0 0 15px 0;
-            font-size: 26px;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-
-        p {
-            margin: 0;
-            font-size: 16px;
-            line-height: 1.5;
-            color: #666;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #007bff; position: relative; }
+        .card-aussen { border-left: 5px solid #28a745; }
+        label { font-weight: bold; display: flex; align-items: center; margin-top: 10px; font-size: 0.9em; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        input[type="checkbox"] { width: auto; margin: 0 8px 0 0; transform: scale(1.3); cursor: pointer; }
+        button { background: #007bff; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .add-btn { background: #28a745; margin-bottom: 20px; }
+        .del-btn { background: #dc3545; padding: 8px 12px; width: auto; font-size: 12px; position: absolute; right: 10px; top: 10px; margin: 0; }
+        #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 20px; border-radius: 15px; width: 85%; text-align: center; color: black; }
+        #resultArea { display:none; margin-top: 20px; }
+        pre { background: #fff; padding: 15px; white-space: pre-wrap; border: 2px dashed #007bff; font-family: monospace; }
+        .reset-btn { background: #6c757d; margin-top: 30px; font-size: 14px; }
+        h4 { margin-top: 0; padding-right: 70px; }
     </style>
 </head>
 <body>
 
-    <div class="notice-card">
-        <div class="icon">🛑</div>
-        <h1>Außer Betrieb</h1>
-        <p>Der Wartungsprotokoll Generator wurde außer Betrieb genommen.</p>
+    <h2>Kälte-Wartung v6</h2>
+    <p style="font-size: 0.8em; color: #666;">Daten werden automatisch zwischengespeichert.</p>
+
+    <div class="card">
+        <label>Anzahl Innen- / Außengeräte:</label>
+        <div style="display:flex; gap:10px;">
+            <input type="number" id="main_innen" placeholder="Innen" oninput="saveAll()">
+            <input type="number" id="main_aussen" placeholder="Außen" oninput="saveAll()">
+        </div>
+        
+        <label>Anlagenstatus:</label>
+        <select id="main_status" onchange="checkStatus(); saveAll();">
+            <option value="OK">Einwandfrei</option>
+            <option value="ERROR">Störung</option>
+        </select>
+        <div id="stoerungDiv" style="display:none;">
+            <input type="text" id="main_stoerung_text" placeholder="Fehlerbeschreibung..." oninput="saveAll()">
+        </div>
     </div>
 
+    <div id="innenListe"></div>
+    <button class="add-btn" onclick="addInnen(); updateNumbers(); saveAll();">+ Innengerät hinzufügen</button>
+
+    <div id="aussenListe"></div>
+    <button class="add-btn" onclick="addAussen(); updateNumbers(); saveAll();" style="background:#218838;">+ Außengerät hinzufügen</button>
+
+    <button onclick="startFinish()" style="background:#0056b3; height: 60px;">PROTOKOLL ERSTELLEN</button>
+    <button class="reset-btn" onclick="clearData()">Formular komplett leeren</button>
+
+    <div id="modal" onclick="closeModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h3>Prüfung</h3>
+            <p>Sind alle Angaben korrekt?</p>
+            <button id="finishBtn" onclick="showFinal()">Jetzt Fertigstellen</button>
+            <button style="background:#eee; color: black;" onclick="closeModal()">Abbrechen</button>
+        </div>
+    </div>
+
+    <div id="resultArea" class="card">
+        <h3>Fertiges Protokoll:</h3>
+        <pre id="outputText"></pre>
+        <button onclick="copyToClipboard()" style="background:#17a2b8;">Text kopieren</button>
+    </div>
+
+    <script>
+        function checkStatus() {
+            document.getElementById('stoerungDiv').style.display = (document.getElementById('main_status').value === 'ERROR') ? 'block' : 'none';
+        }
+
+        function updateNumbers() {
+            document.querySelectorAll('#innenListe .device-item-in').forEach((box, idx) => {
+                box.querySelector('h4').innerText = (idx + 1) + ". Innengerät";
+            });
+            document.querySelectorAll('#aussenListe .device-item-au').forEach((box, idx) => {
+                box.querySelector('h4').innerText = (idx + 1) + ". Außengerät";
+            });
+        }
+
+        function addInnen(data = null) {
+            let div = document.createElement('div');
+            div.className = 'card device-item-in';
+            div.innerHTML = `
+                <h4>Innengerät</h4>
+                <button class="del-btn" onclick="if(confirm('Dieses Innengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveAll(); }">Löschen</button>
+                
+                <label><input type="checkbox" class="cb-loc" checked onchange="saveAll()"> Standort:</label><input type="text" class="in-loc" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-her" checked onchange="saveAll()"> Hersteller:</label><input type="text" class="in-her" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-typ" checked onchange="saveAll()"> Typ:</label><input type="text" class="in-typ" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-ser" checked onchange="saveAll()"> Ser.-Nr:</label><input type="text" class="in-ser" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-bj" checked onchange="saveAll()"> Baujahr:</label><input type="text" class="in-bj" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-kon" checked onchange="saveAll()"> Kondensat:</label><input type="text" class="in-kon" oninput="saveAll()">
+                
+                <div style="display:flex; align-items:center; gap:5px; margin-top:15px; flex-wrap: wrap;">
+                    <input type="checkbox" class="cb-temp" checked onchange="saveAll()">
+                    <span style="font-weight:bold; font-size:0.9em;">Ausblastemperatur</span>
+                    <input type="text" class="in-t-ist" style="width:70px; margin:0;" placeholder="Ist" oninput="saveAll()">
+                    <span style="font-weight:bold; font-size:0.9em;">°C bei</span>
+                    <input type="text" class="in-t-soll" style="width:70px; margin:0;" placeholder="Soll" oninput="saveAll()">
+                    <span style="font-weight:bold; font-size:0.9em;">°C</span>
+                </div>
+                
+                <label><input type="checkbox" class="cb-ms" checked onchange="saveAll()"> m/s:</label><input type="text" class="in-ms" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-info" checked onchange="saveAll()"> Zusatzinfo:</label><input type="text" class="in-info" oninput="saveAll()">
+            `;
+            document.getElementById('innenListe').appendChild(div);
+
+            if (data) {
+                let inputs = Array.from(div.querySelectorAll('input'));
+                inputs.forEach((el, i) => {
+                    if (data[i] !== undefined) {
+                        if (el.type === 'checkbox') el.checked = data[i];
+                        else el.value = data[i];
+                    }
+                });
+            }
+        }
+
+        function addAussen(data = null) {
+            let div = document.createElement('div');
+            div.className = 'card card-aussen device-item-au';
+            div.innerHTML = `
+                <h4>Außengerät</h4>
+                <button class="del-btn" onclick="if(confirm('Dieses Außengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveAll(); }">Löschen</button>
+                
+                <label style="color: #0056b3;"><input type="checkbox" class="cb-zu" checked onchange="saveAll()"> Zugehörige IG (z.B. 1, 2, 3):</label><input type="text" class="au-zu" placeholder="Nummern der Innengeräte" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-loc" checked onchange="saveAll()"> Standort:</label><input type="text" class="au-loc" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-her" checked onchange="saveAll()"> Hersteller:</label><input type="text" class="au-her" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-typ" checked onchange="saveAll()"> Typ:</label><input type="text" class="au-typ" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-ser" checked onchange="saveAll()"> Ser.-Nr:</label><input type="text" class="au-ser" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-bj" checked onchange="saveAll()"> Baujahr:</label><input type="text" class="au-bj" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-km" checked onchange="saveAll()"> KM / Menge kg:</label>
+                <div style="display:flex; gap:5px;"><input type="text" class="au-km" placeholder="KM" oninput="saveAll()"><input type="text" class="au-kg" placeholder="kg" oninput="saveAll()"></div>
+                
+                <label><input type="checkbox" class="cb-bar" checked onchange="saveAll()"> Kältemitteldruck (bar):</label><input type="text" class="au-bar" placeholder="bar" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-vdkf" checked onchange="saveAll()"> VDKF:</label><input type="text" class="au-vdkf" placeholder="VDKF" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-strom" checked onchange="saveAll()"> Stromaufnahme (A):</label><input type="text" class="au-strom" placeholder="A" oninput="saveAll()">
+                
+                <label><input type="checkbox" class="cb-info" checked onchange="saveAll()"> Zusatzinfo:</label><input type="text" class="au-info" oninput="saveAll()">
+            `;
+            document.getElementById('aussenListe').appendChild(div);
+
+            if (data) {
+                let inputs = Array.from(div.querySelectorAll('input'));
+                inputs.forEach((el, i) => {
+                    if (data[i] !== undefined) {
+                        if (el.type === 'checkbox') el.checked = data[i];
+                        else el.value = data[i];
+                    }
+                });
+            }
+        }
+
+        function saveAll() {
+            const state = {
+                mainInnen: document.getElementById('main_innen').value,
+                mainAussen: document.getElementById('main_aussen').value,
+                status: document.getElementById('main_status').value,
+                stoerung: document.getElementById('main_stoerung_text').value,
+                innen: Array.from(document.querySelectorAll('#innenListe .device-item-in')).map(box => {
+                    return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
+                }),
+                aussen: Array.from(document.querySelectorAll('#aussenListe .device-item-au')).map(box => {
+                    return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
+                })
+            };
+            localStorage.setItem('kaelte_data_v6', JSON.stringify(state));
+        }
+
+        function loadAll() {
+            const saved = localStorage.getItem('kaelte_data_v6');
+            if(!saved) return;
+            const state = JSON.parse(saved);
+            document.getElementById('main_innen').value = state.mainInnen || '';
+            document.getElementById('main_aussen').value = state.mainAussen || '';
+            document.getElementById('main_status').value = state.status || 'OK';
+            document.getElementById('main_stoerung_text').value = state.stoerung || '';
+            checkStatus();
+            
+            if(state.innen) state.innen.forEach(d => addInnen(d));
+            if(state.aussen) state.aussen.forEach(d => addAussen(d));
+            
+            updateNumbers();
+        }
+
+        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.removeItem('kaelte_data_v6'); location.reload(); } }
+
+        function startFinish() {
+            let countIn = document.getElementById('main_innen').value.trim();
+            let countAu = document.getElementById('main_aussen').value.trim();
+            
+            if (countIn === "" && countAu === "") {
+                alert("Bitte gib zumindest an, wie viele Innen- oder Außengeräte vorhanden sind!");
+                return;
+            }
+            
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function opt(box, cbCls, valCls, labelText, unit = "") {
+            let cb = box.querySelector(cbCls);
+            if (!cb || !cb.checked) return "";
+            let v = box.querySelector(valCls).value.trim() || "-";
+            return `${labelText}${v}${unit}\n`;
+        }
+
+        function showFinal() {
+            closeModal();
+            let status = document.getElementById('main_status').value;
+            let stoerung = document.getElementById('main_stoerung_text').value || "-";
+            
+            let t = `Die Wartung wurde gemäß Auftrag ordnungsgemäß durchgeführt.\n\n`;
+            t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\n`;
+            t += `Stromaufnahme und Drücke gemessen.\nElektrische Klemmen nachgezogen.\nFunktionen und ablaufen / abpumpen des Kondensats getestet.\nDruckprobe(n) durchgeführt.\n\n`;
+            t += (status === "OK") ? "Die Anlagen funktionieren einwandfrei.\n\n" : `Störung liegt vor: ${stoerung}\n\n`;
+
+            // Innengeräte ausgeben
+            document.querySelectorAll('#innenListe .device-item-in').forEach((box, idx) => {
+                t += `${idx+1}. Innengerät\n`;
+                t += opt(box, '.cb-loc', '.in-loc', 'Standort: ');
+                t += opt(box, '.cb-her', '.in-her', 'Hersteller: ');
+                t += opt(box, '.cb-typ', '.in-typ', 'Typ: ');
+                t += opt(box, '.cb-ser', '.in-ser', 'Ser.: ');
+                t += opt(box, '.cb-bj', '.in-bj', 'Baujahr: ');
+                t += opt(box, '.cb-kon', '.in-kon', 'Kondensatablauf: ');
+                
+                if (box.querySelector('.cb-temp') && box.querySelector('.cb-temp').checked) {
+                    let ist = box.querySelector('.in-t-ist').value.trim() || "-";
+                    let soll = box.querySelector('.in-t-soll').value.trim() || "-";
+                    t += `Ausblastemperatur: ${ist} °C bei eingestellten ${soll} °C\n`;
+                }
+                
+                t += opt(box, '.cb-ms', '.in-ms', 'Ausblasgeschwindigkeit: ', ' m/s');
+                t += opt(box, '.cb-info', '.in-info', '* ');
+                t += `\n`;
+            });
+
+            // Außengeräte ausgeben
+            document.querySelectorAll('#aussenListe .device-item-au').forEach((box, idx) => {
+                let zuText = "";
+                if (box.querySelector('.cb-zu') && box.querySelector('.cb-zu').checked) {
+                    let zuVal = box.querySelector('.au-zu').value.trim();
+                    if(zuVal !== "") zuText = ` zu ${zuVal}`;
+                }
+                
+                t += `${idx+1}. Außengerät${zuText}\n`;
+                
+                t += opt(box, '.cb-loc', '.au-loc', 'Standort: ');
+                t += opt(box, '.cb-her', '.au-her', 'Hersteller: ');
+                t += opt(box, '.cb-typ', '.au-typ', 'Typ: ');
+                t += opt(box, '.cb-ser', '.au-ser', 'Ser.: ');
+                t += opt(box, '.cb-bj', '.au-bj', 'Baujahr: ');
+                
+                if (box.querySelector('.cb-km') && box.querySelector('.cb-km').checked) {
+                    let km = box.querySelector('.au-km').value.trim() || "-";
+                    let kg = box.querySelector('.au-kg').value.trim() || "-";
+                    t += `Kältemittel: ${km} , ${kg} kg\n`;
+                }
+                
+                if (box.querySelector('.cb-bar') && box.querySelector('.cb-bar').checked) {
+                    let bar = box.querySelector('.au-bar').value.trim() || "-";
+                    t += `Kältemitteldruck: ${bar} bar\n`;
+                }
+
+                if (box.querySelector('.cb-vdkf') && box.querySelector('.cb-vdkf').checked) {
+                    let vdkf = box.querySelector('.au-vdkf').value.trim() || "-";
+                    t += `VDKF: ${vdkf}\n`;
+                }
+                
+                if (box.querySelector('.cb-strom') && box.querySelector('.cb-strom').checked) {
+                    let strom = box.querySelector('.au-strom').value.trim() || "-";
+                    t += `Stromaufnahme: ${strom} A\n`;
+                }
+                
+                t += opt(box, '.cb-info', '.au-info', '* ');
+                t += `\n`;
+            });
+
+            document.getElementById('outputText').innerText = t;
+            document.getElementById('resultArea').style.display = 'block';
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(document.getElementById('outputText').innerText).then(() => alert("Kopiert!"));
+        }
+
+        window.onload = loadAll;
+    </script>
 </body>
 </html>
