@@ -2,75 +2,217 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Wartungsprotokoll Generator</title>
+    <title>Wartungsprotokoll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
-        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #007bff; position: relative; }
-        .card-aussen { border-left: 5px solid #28a745; }
-        label { font-weight: bold; display: flex; align-items: center; margin-top: 10px; font-size: 0.9em; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
-        input[type="checkbox"] { width: auto; margin: 0 8px 0 0; transform: scale(1.3); cursor: pointer; }
-        button { background: #007bff; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .add-btn { background: #28a745; margin-bottom: 20px; }
-        .del-btn { background: #dc3545; padding: 8px 12px; width: auto; font-size: 12px; position: absolute; right: 10px; top: 10px; margin: 0; }
-        #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; justify-content: center; align-items: center; }
-        .modal-box { background: white; padding: 20px; border-radius: 15px; width: 85%; text-align: center; color: black; }
-        #resultArea { display:none; margin-top: 20px; }
-        pre { background: #fff; padding: 15px; white-space: pre-wrap; border: 2px dashed #007bff; font-family: monospace; }
-        .reset-btn { background: #6c757d; margin-top: 30px; font-size: 14px; }
-        h4 { margin-top: 0; padding-right: 70px; }
+        /* CSS Variablen für das flexible Theme-Switching */
+        :root {
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --card-border-in: #2563eb;
+            --card-border-au: #10b981;
+            --modal-bg: rgba(15, 23, 42, 0.6);
+            --focus-ring: rgba(37, 99, 235, 0.15);
+        }
+
+        body.dark {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --success: #34d399;
+            --success-hover: #10b981;
+            --danger: #f87171;
+            --danger-hover: #ef4444;
+            --modal-bg: rgba(0, 0, 0, 0.75);
+            --focus-ring: rgba(59, 130, 246, 0.25);
+        }
+
+        /* Allgemeines Layout */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            padding: 20px; 
+            background: var(--bg); 
+            color: var(--text); 
+            max-width: 700px; 
+            margin: 0 auto;
+            transition: background 0.3s, color 0.3s;
+            padding-top: 70px;
+        }
+
+        h2 { font-size: 28px; font-weight: 700; margin-bottom: 5px; color: var(--text); }
+        .subtitle { font-size: 0.9em; color: var(--text-muted); margin-bottom: 25px; }
+
+        /* Schwebender Darkmode Button */
+        #theme-toggle {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            z-index: 2000;
+            transition: transform 0.2s, background 0.2s, border-color 0.2s;
+        }
+        #theme-toggle:hover { transform: scale(1.05); }
+        body.dark #theme-toggle .sun-icon { display: block; }
+        body.dark #theme-toggle .moon-icon { display: none; }
+        body:not(.dark) #theme-toggle .sun-icon { display: none; }
+        body:not(.dark) #theme-toggle .moon-icon { display: block; }
+
+        /* Karten / Container */
+        .card { 
+            background: var(--card-bg); 
+            padding: 20px; 
+            border-radius: 14px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
+            border-left: 5px solid var(--card-border-in); 
+            position: relative;
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+        .card-aussen { border-left-color: var(--card-border-au); }
+        
+        h4 { margin: 0 0 15px 0; font-size: 18px; font-weight: 600; padding-right: 80px; }
+
+        /* Eingabefelder */
+        label { font-weight: 600; display: flex; align-items: center; margin-top: 14px; font-size: 0.85em; color: var(--text); uppercase; letter-spacing: 0.5px; }
+        input[type="text"], input[type="number"], select { 
+            width: 100%; 
+            padding: 12px; 
+            margin-top: 6px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            font-size: 15px; 
+            background: var(--card-bg);
+            color: var(--text);
+            box-sizing: border-box; 
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+        input[type="checkbox"] { width: auto; margin: 0 10px 0 0; transform: scale(1.2); cursor: pointer; }
+        
+        /* Buttons */
+        button { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 8px; 
+            width: 100%; 
+            font-size: 15px; 
+            font-weight: 600; 
+            margin-top: 12px; 
+            cursor: pointer; 
+            transition: background 0.2s, transform 0.1s; 
+        }
+        button:hover { filter: brightness(1.05); }
+        button:active { transform: scale(0.98); }
+        
+        .add-btn { background: var(--success); margin-bottom: 20px; }
+        .del-btn { background: var(--danger); padding: 8px 14px; width: auto; font-size: 12px; position: absolute; right: 15px; top: 15px; margin: 0; }
+        .reset-btn { background: var(--text-muted); margin-top: 40px; font-size: 14px; opacity: 0.8; }
+
+        /* Flex-Gruppen */
+        .flex-group { display: flex; gap: 12px; align-items: flex-end; }
+        .inline-temp-group { display: flex; align-items: center; gap: 8px; margin-top: 18px; flex-wrap: wrap; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 8px; border: 1px dashed var(--border); }
+
+        /* Modal */
+        #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: var(--modal-bg); z-index:3000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-box { background: var(--card-bg); padding: 30px; border-radius: 16px; width: 85%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); color: var(--text); }
+        .modal-box h3 { margin-top: 0; font-size: 22px; }
+        .modal-box p { color: var(--text-muted); margin-bottom: 25px; }
+
+        /* Resultat Bereich */
+        #resultArea { display:none; margin-top: 30px; border-left-color: var(--primary); }
+        pre { background: rgba(0,0,0,0.02); padding: 15px; white-space: pre-wrap; border: 2px dashed var(--border); font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 14px; border-radius: 8px; color: var(--text); }
+        body.dark pre { background: rgba(255,255,255,0.02); }
     </style>
 </head>
 <body>
 
+    <button id="theme-toggle" onclick="toggleTheme()" aria-label="Theme wechseln">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+    </button>
+
     <h2>Wartungsprotokoll</h2>
-    <p style="font-size: 0.8em; color: #666;">Daten werden automatisch zwischengespeichert.</p>
+     
 
     <div class="card">
-        <label>Anzahl Innen- / Außengeräte:</label>
-        <div style="display:flex; gap:10px;">
-            <input type="number" id="main_innen" placeholder="Innen" oninput="saveAll()">
-            <input type="number" id="main_aussen" placeholder="Außen" oninput="saveAll()">
-        </div>
-        
-        <label>Anlagenstatus:</label>
-        <select id="main_status" onchange="checkStatus(); saveAll();">
-            <option value="OK">Einwandfrei</option>
-            <option value="ERROR">Störung</option>
-        </select>
-        <div id="stoerungDiv" style="display:none;">
-            <input type="text" id="main_stoerung_text" placeholder="Fehlerbeschreibung..." oninput="saveAll()">
+        <h4 style="color: var(--primary);">📊 Stammdaten</h4>
+        <label>Anzahl der installierten Geräte:</label>
+        <div class="flex-group">
+            <div style="flex: 1;">
+                <span style="font-size:11px; font-weight:bold; color:var(--text-muted);">INNENGERÄTE</span>
+                <input type="number" id="main_innen" placeholder="0" oninput="saveDraft()">
+            </div>
+            <div style="flex: 1;">
+                <span style="font-size:11px; font-weight:bold; color:var(--text-muted);">AUSSENGERÄTE</span>
+                <input type="number" id="main_aussen" placeholder="0" oninput="saveDraft()">
+            </div>
         </div>
     </div>
 
     <div id="innenListe"></div>
-    <button class="add-btn" onclick="addInnen(); updateNumbers(); saveAll();">+ Innengerät hinzufügen</button>
+    <button class="add-btn" onclick="addInnen(); updateNumbers(); saveDraft();">+ Neues Innengerät hinzufügen</button>
 
     <div id="aussenListe"></div>
-    <button class="add-btn" onclick="addAussen(); updateNumbers(); saveAll();" style="background:#218838;">+ Außengerät hinzufügen</button>
+    <button class="add-btn" onclick="addAussen(); updateNumbers(); saveDraft();" style="background: var(--success); margin-bottom: 30px;">+ Neues Außengerät hinzufügen</button>
 
-    <button onclick="startFinish()" style="background:#0056b3; height: 60px;">PROTOKOLL ERSTELLEN</button>
-    <button class="reset-btn" onclick="clearData()">Formular komplett leeren</button>
+    <button onclick="startFinish()" style="background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%); height: 55px; font-size: 16px; box-shadow: 0 4px 10px rgba(37,99,235,0.25);">📝 PROTOKOLL GENERIEREN</button>
+    <button class="reset-btn" onclick="clearData()">Gesamtes Formular zurücksetzen</button>
 
     <div id="modal" onclick="closeModal()">
         <div class="modal-box" onclick="event.stopPropagation()">
             <h3>Prüfung</h3>
-            <p>Sind alle Angaben korrekt?</p>
-            <button id="finishBtn" onclick="showFinal()">Jetzt Fertigstellen</button>
-            <button style="background:#eee; color: black;" onclick="closeModal()">Abbrechen</button>
+            <p>Sind alle eingetragenen Messwerte und Daten korrekt überprüft worden?</p>
+            <button id="finishBtn" onclick="showFinal()" style="background: var(--success);">Ja, fertigstellen</button>
+            <button style="background: var(--border); color: var(--text); margin-top: 8px;" onclick="closeModal()">Abbrechen</button>
         </div>
     </div>
 
     <div id="resultArea" class="card">
-        <h3>Fertiges Protokoll:</h3>
+        <h4 style="color: var(--primary);">📋 Generiertes Textprotokoll</h4>
         <pre id="outputText"></pre>
-        <button onclick="copyToClipboard()" style="background:#17a2b8;">Text kopieren</button>
+        <button onclick="copyToClipboard()" style="background: var(--primary);">In Zwischenablage kopieren</button>
     </div>
 
     <script>
-        function checkStatus() {
-            document.getElementById('stoerungDiv').style.display = (document.getElementById('main_status').value === 'ERROR') ? 'block' : 'none';
+        // --- THEME MANAGEMENT (LIGHT / DARK) ---
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('kaelte_theme', isDark ? 'dark' : 'light');
+        }
+        function initTheme() {
+            const savedTheme = localStorage.getItem('kaelte_theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.body.classList.add('dark');
+            }
         }
 
         function updateNumbers() {
@@ -87,26 +229,26 @@
             div.className = 'card device-item-in';
             div.innerHTML = `
                 <h4>Innengerät</h4>
-                <button class="del-btn" onclick="if(confirm('Dieses Innengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveAll(); }">Löschen</button>
+                <button class="del-btn" onclick="if(confirm('Dieses Innengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveDraft(); }">Löschen</button>
                 
-                <label><input type="checkbox" class="cb-loc" checked onchange="saveAll()"> Standort:</label><input type="text" class="in-loc" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-her" checked onchange="saveAll()"> Hersteller:</label><input type="text" class="in-her" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-typ" checked onchange="saveAll()"> Typ:</label><input type="text" class="in-typ" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-ser" checked onchange="saveAll()"> Ser.-Nr:</label><input type="text" class="in-ser" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-bj" checked onchange="saveAll()"> Baujahr:</label><input type="text" class="in-bj" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-kon" checked onchange="saveAll()"> Kondensat:</label><input type="text" class="in-kon" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-loc" checked onchange="saveDraft()"> Standort:</label><input type="text" class="in-loc" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-her" checked onchange="saveDraft()"> Hersteller:</label><input type="text" class="in-her" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-typ" checked onchange="saveDraft()"> Typ:</label><input type="text" class="in-typ" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-ser" checked onchange="saveDraft()"> Ser.-Nr:</label><input type="text" class="in-ser" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-bj" checked onchange="saveDraft()"> Baujahr:</label><input type="text" class="in-bj" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-kon" checked onchange="saveDraft()"> Kondensatablauf:</label><input type="text" class="in-kon" oninput="saveDraft()">
                 
-                <div style="display:flex; align-items:center; gap:5px; margin-top:15px; flex-wrap: wrap;">
-                    <input type="checkbox" class="cb-temp" checked onchange="saveAll()">
-                    <span style="font-weight:bold; font-size:0.9em;">Ausblastemperatur</span>
-                    <input type="text" class="in-t-ist" style="width:70px; margin:0;" placeholder="Ist" oninput="saveAll()">
-                    <span style="font-weight:bold; font-size:0.9em;">°C bei</span>
-                    <input type="text" class="in-t-soll" style="width:70px; margin:0;" placeholder="Soll" oninput="saveAll()">
-                    <span style="font-weight:bold; font-size:0.9em;">°C</span>
+                <div class="inline-temp-group">
+                    <input type="checkbox" class="cb-temp" checked onchange="saveDraft()">
+                    <span style="font-weight:600; font-size:0.85em;">Ausblastemperatur:</span>
+                    <input type="text" class="in-t-ist" style="width:65px; margin:0; padding:6px;" placeholder="Ist" oninput="saveDraft()">
+                    <span style="font-size:0.85em;">°C bei</span>
+                    <input type="text" class="in-t-soll" style="width:65px; margin:0; padding:6px;" placeholder="Soll" oninput="saveDraft()">
+                    <span style="font-size:0.85em;">°C (Soll)</span>
                 </div>
                 
-                <label><input type="checkbox" class="cb-ms" checked onchange="saveAll()"> m/s:</label><input type="text" class="in-ms" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-info" checked onchange="saveAll()"> Zusatzinfo:</label><input type="text" class="in-info" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-ms" checked onchange="saveDraft()"> Ausblasgeschwindigkeit (m/s):</label><input type="text" class="in-ms" placeholder="z.B. 3.2" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-info" checked onchange="saveDraft()"> Bemerkungen / Zusatzinfo:</label><input type="text" class="in-info" oninput="saveDraft()">
             `;
             document.getElementById('innenListe').appendChild(div);
 
@@ -126,26 +268,24 @@
             div.className = 'card card-aussen device-item-au';
             div.innerHTML = `
                 <h4>Außengerät</h4>
-                <button class="del-btn" onclick="if(confirm('Dieses Außengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveAll(); }">Löschen</button>
+                <button class="del-btn" onclick="if(confirm('Dieses Außengerät wirklich löschen?')) { this.parentElement.remove(); updateNumbers(); saveDraft(); }">Löschen</button>
                 
-                <label style="color: #0056b3;"><input type="checkbox" class="cb-zu" checked onchange="saveAll()"> Zugehörige IG (z.B. 1, 2, 3):</label><input type="text" class="au-zu" placeholder="Nummern der Innengeräte" oninput="saveAll()">
+                <label style="color: var(--primary);"><input type="checkbox" class="cb-zu" checked onchange="saveDraft()"> Zugehörige IG (z.B. 1, 2):</label><input type="text" class="au-zu" placeholder="Nummern der Innengeräte eingeben" oninput="saveDraft()">
                 
-                <label><input type="checkbox" class="cb-loc" checked onchange="saveAll()"> Standort:</label><input type="text" class="au-loc" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-her" checked onchange="saveAll()"> Hersteller:</label><input type="text" class="au-her" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-typ" checked onchange="saveAll()"> Typ:</label><input type="text" class="au-typ" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-ser" checked onchange="saveAll()"> Ser.-Nr:</label><input type="text" class="au-ser" oninput="saveAll()">
-                <label><input type="checkbox" class="cb-bj" checked onchange="saveAll()"> Baujahr:</label><input type="text" class="au-bj" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-loc" checked onchange="saveDraft()"> Standort:</label><input type="text" class="au-loc" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-her" checked onchange="saveDraft()"> Hersteller:</label><input type="text" class="au-her" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-typ" checked onchange="saveDraft()"> Typ:</label><input type="text" class="au-typ" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-ser" checked onchange="saveDraft()"> Ser.-Nr:</label><input type="text" class="au-ser" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-bj" checked onchange="saveDraft()"> Baujahr:</label><input type="text" class="au-bj" oninput="saveDraft()">
                 
-                <label><input type="checkbox" class="cb-km" checked onchange="saveAll()"> KM / Menge kg:</label>
-                <div style="display:flex; gap:5px;"><input type="text" class="au-km" placeholder="KM" oninput="saveAll()"><input type="text" class="au-kg" placeholder="kg" oninput="saveAll()"></div>
+                <label><input type="checkbox" class="cb-km" checked onchange="saveDraft()"> Kältemitteltyp / Füllmenge:</label>
+                <div class="flex-group"><input type="text" class="au-km" placeholder="Typ (z.B. R32)" oninput="saveDraft()"><input type="text" class="au-kg" placeholder="Menge in kg" oninput="saveDraft()"></div>
                 
-                <label><input type="checkbox" class="cb-bar" checked onchange="saveAll()"> Kältemitteldruck (bar):</label><input type="text" class="au-bar" placeholder="bar" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-bar" checked onchange="saveDraft()"> Betriebsdruck (bar):</label><input type="text" class="au-bar" placeholder="bar" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-vdkf" checked onchange="saveDraft()"> VDKF-Nummer:</label><input type="text" class="au-vdkf" placeholder="VDKF" oninput="saveDraft()">
+                <label><input type="checkbox" class="cb-strom" checked onchange="saveDraft()"> Stromaufnahme (A):</label><input type="text" class="au-strom" placeholder="Messwert in Ampere" oninput="saveDraft()">
                 
-                <label><input type="checkbox" class="cb-vdkf" checked onchange="saveAll()"> VDKF:</label><input type="text" class="au-vdkf" placeholder="VDKF" oninput="saveAll()">
-                
-                <label><input type="checkbox" class="cb-strom" checked onchange="saveAll()"> Stromaufnahme (A):</label><input type="text" class="au-strom" placeholder="A" oninput="saveAll()">
-                
-                <label><input type="checkbox" class="cb-info" checked onchange="saveAll()"> Zusatzinfo:</label><input type="text" class="au-info" oninput="saveAll()">
+                <label><input type="checkbox" class="cb-info" checked onchange="saveDraft()"> Bemerkungen / Zusatzinfo:</label><input type="text" class="au-info" oninput="saveDraft()">
             `;
             document.getElementById('aussenListe').appendChild(div);
 
@@ -160,12 +300,11 @@
             }
         }
 
-        function saveAll() {
-            const state = {
+        // --- SPEICHER LOGIK (ZWISCHENSPEICHER) ---
+        function getCurrentState() {
+            return {
                 mainInnen: document.getElementById('main_innen').value,
                 mainAussen: document.getElementById('main_aussen').value,
-                status: document.getElementById('main_status').value,
-                stoerung: document.getElementById('main_stoerung_text').value,
                 innen: Array.from(document.querySelectorAll('#innenListe .device-item-in')).map(box => {
                     return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
                 }),
@@ -173,36 +312,51 @@
                     return Array.from(box.querySelectorAll('input')).map(i => i.type === 'checkbox' ? i.checked : i.value);
                 })
             };
-            localStorage.setItem('kaelte_data_v6', JSON.stringify(state));
         }
 
-        function loadAll() {
-            const saved = localStorage.getItem('kaelte_data_v6');
-            if(!saved) return;
-            const state = JSON.parse(saved);
+        function applyState(state) {
             document.getElementById('main_innen').value = state.mainInnen || '';
             document.getElementById('main_aussen').value = state.mainAussen || '';
-            document.getElementById('main_status').value = state.status || 'OK';
-            document.getElementById('main_stoerung_text').value = state.stoerung || '';
-            checkStatus();
+            
+            document.getElementById('innenListe').innerHTML = '';
+            document.getElementById('aussenListe').innerHTML = '';
             
             if(state.innen) state.innen.forEach(d => addInnen(d));
             if(state.aussen) state.aussen.forEach(d => addAussen(d));
             
             updateNumbers();
+            saveDraft();
         }
 
-        function clearData() { if(confirm("Wirklich alles löschen?")) { localStorage.removeItem('kaelte_data_v6'); location.reload(); } }
+        function saveDraft() {
+            localStorage.setItem('kaelte_draft_v9', JSON.stringify(getCurrentState()));
+        }
+
+        function loadDraft() {
+            initTheme();
+            const saved = localStorage.getItem('kaelte_draft_v9');
+            if(saved) {
+                applyState(JSON.parse(saved));
+            } else {
+                updateNumbers();
+            }
+        }
+
+        function clearData() { 
+            if(confirm("Möchtest du das aktuelle Formular wirklich komplett leeren?")) { 
+                localStorage.removeItem('kaelte_draft_v9'); 
+                location.reload(); 
+            } 
+        }
 
         function startFinish() {
             let countIn = document.getElementById('main_innen').value.trim();
             let countAu = document.getElementById('main_aussen').value.trim();
             
             if (countIn === "" && countAu === "") {
-                alert("Bitte gib zumindest an, wie viele Innen- oder Außengeräte vorhanden sind!");
+                alert("Fehler: Bitte trage ganz oben die Anzahl der Innen- oder Außengeräte ein!");
                 return;
             }
-            
             document.getElementById('modal').style.display = 'flex';
         }
 
@@ -215,15 +369,13 @@
             return `${labelText}${v}${unit}\n`;
         }
 
+        // --- PROTOKOLL TEXT-GENERIERUNG ---
         function showFinal() {
             closeModal();
-            let status = document.getElementById('main_status').value;
-            let stoerung = document.getElementById('main_stoerung_text').value || "-";
             
             let t = `Die Wartung wurde gemäß Auftrag ordnungsgemäß durchgeführt.\n\n`;
             t += `Im Rahmen der Arbeiten wurden ${document.getElementById('main_innen').value || "-"} Innengeräte und ${document.getElementById('main_aussen').value || "-"} Außengeräte gereinigt und desinfiziert.\n\n`;
-            t += `Stromaufnahme und Drücke gemessen.\nElektrische Klemmen nachgezogen.\nFunktionen und ablaufen / abpumpen des Kondensats getestet.\nDruckprobe(n) durchgeführt.\n\n`;
-            t += (status === "OK") ? "Die Anlagen funktionieren einwandfrei.\n\n" : `Störung liegt vor: ${stoerung}\n\n`;
+            t += `Stromaufnahme gemessen.\nElektrische Klemmen nachgezogen.\nFunktionen und ablaufen / abpumpen des Kondensats getestet.\nDruckprobe(n) durchgeführt.\n\n`;
 
             // Innengeräte ausgeben
             document.querySelectorAll('#innenListe .device-item-in').forEach((box, idx) => {
@@ -289,14 +441,14 @@
 
             document.getElementById('outputText').innerText = t;
             document.getElementById('resultArea').style.display = 'block';
-            window.scrollTo(0, document.body.scrollHeight);
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function copyToClipboard() {
-            navigator.clipboard.writeText(document.getElementById('outputText').innerText).then(() => alert("Kopiert!"));
+            navigator.clipboard.writeText(document.getElementById('outputText').innerText).then(() => alert("Protokoll wurde in die Zwischenablage kopiert!"));
         }
 
-        window.onload = loadAll;
+        window.onload = loadDraft;
     </script>
 </body>
 </html>
